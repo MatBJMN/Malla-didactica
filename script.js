@@ -522,26 +522,45 @@ let ramosDatos = [
     }
 ];
 
-// Estado global
+// Variable para detectar primera vez
+let primeraVez = true;
 let ramoCompletado = {};
-let temaActual = 'default';
+let ramoPromedios = {}; // Guardar promedios de cada asignatura
+let temaActual = 'blue'; // Iniciar con azul por defecto
 let mallaInfo = {
-    titulo: '🎓 Pedagogía en Matemática',
-    subtitulo: 'Malla Didáctica - Plan 2026',
+    titulo: '🎓 Mi Carrera',
+    subtitulo: 'Mi Malla Didáctica',
     emoji: '🎓'
 };
+let ramoEditandoId = null;
+let ramoEditandoPromedioId = null;
 
 // Inicializar
 document.addEventListener('DOMContentLoaded', () => {
     cargarDatos();
     aplicarTema(temaActual);
+    
+    // Mostrar pantalla de bienvenida si es primera vez
+    if (primeraVez && ramosDatos.length === 0) {
+        mostrarBienvenida();
+    } else {
+        ocultarBienvenida();
+    }
+    
     renderizarMalla();
     actualizarContadores();
+    actualizarGraficoCreditos();
     configurarEventos();
 });
 
 // Configurar eventos
 function configurarEventos() {
+    // Botón de inicio en la pantalla de bienvenida
+    const startBtn = document.getElementById('startBtn');
+    if (startBtn) {
+        startBtn.addEventListener('click', ocultarBienvenida);
+    }
+
     document.getElementById('themeSelector').addEventListener('change', (e) => {
         temaActual = e.target.value;
         aplicarTema(temaActual);
@@ -561,6 +580,15 @@ function configurarEventos() {
     document.getElementById('exportBtn').addEventListener('click', exportarMalla);
     document.getElementById('importBtn').addEventListener('click', () => document.getElementById('fileInput').click());
     document.getElementById('fileInput').addEventListener('change', importarMalla);
+    
+    // Eventos del modal de promedio
+    const closePromedioModal = document.getElementById('closePromedioModal');
+    const cancelPromedioBtn = document.getElementById('cancelPromedioBtn');
+    const savePromedioBtn = document.getElementById('savePromedioBtn');
+    
+    if (closePromedioModal) closePromedioModal.addEventListener('click', cerrarPromedioModal);
+    if (cancelPromedioBtn) cancelPromedioBtn.addEventListener('click', cerrarPromedioModal);
+    if (savePromedioBtn) savePromedioBtn.addEventListener('click', guardarPromedio);
     
     // Eventos de emojis
     document.querySelectorAll('.emoji-btn').forEach(btn => {
@@ -583,6 +611,57 @@ function aplicarTema(nombreTema) {
     document.documentElement.style.setProperty('--gradient', tema.gradient);
     document.documentElement.style.setProperty('--header-gradient', tema.headerGradient);
     renderizarMalla();
+}
+
+// ===== FUNCIONES DE BIENVENIDA =====
+function mostrarBienvenida() {
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    if (welcomeScreen) {
+        welcomeScreen.classList.remove('hidden');
+    }
+}
+
+function ocultarBienvenida() {
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    if (welcomeScreen) {
+        welcomeScreen.classList.add('hidden');
+    }
+    primeraVez = false;
+    guardarDatos();
+}
+
+// ===== FUNCIONES DE PROMEDIO =====
+function abrirPromedioModal(ramoId) {
+    ramoEditandoPromedioId = ramoId;
+    const ramo = ramosDatos.find(r => r.id === ramoId);
+    
+    if (ramo) {
+        document.getElementById('ramoPromedioNombre').textContent = ramo.nombre;
+        document.getElementById('promedioInput').value = ramoPromedios[ramoId] || '';
+        document.getElementById('promedioModal').style.display = 'flex';
+    }
+}
+
+function cerrarPromedioModal() {
+    document.getElementById('promedioModal').style.display = 'none';
+    ramoEditandoPromedioId = null;
+}
+
+function guardarPromedio() {
+    const promedio = parseFloat(document.getElementById('promedioInput').value);
+    
+    if (isNaN(promedio) || promedio < 1 || promedio > 7) {
+        alert('Por favor ingresa un promedio válido entre 1.0 y 7.0');
+        return;
+    }
+    
+    if (ramoEditandoPromedioId) {
+        ramoPromedios[ramoEditandoPromedioId] = promedio;
+        guardarDatos();
+        cerrarPromedioModal();
+        renderizarMalla();
+        actualizarGraficoCreditos();
+    }
 }
 
 // Renderizar la malla
@@ -626,6 +705,7 @@ function crearElementoRamo(ramo) {
     const div = document.createElement('div');
     const completado = ramoCompletado[ramo.id] || false;
     const bloqueado = estasBloqueado(ramo);
+    const promedio = ramoPromedios[ramo.id];
     
     div.className = 'ramo';
     if (completado) div.classList.add('completed');
@@ -643,6 +723,7 @@ function crearElementoRamo(ramo) {
         <div class="ramo-name">${ramo.nombre}</div>
         <div class="ramo-credits">${ramo.creditos} créditos</div>
         <div class="ramo-prerequisites">${prerequisitosTexto}</div>
+        ${completado && promedio ? `<div class="ramo-promedio">Promedio: ${promedio}</div>` : ''}
         <div class="status-badge ${completado ? '' : bloqueado ? 'status-locked' : 'status-available'}">
             ${completado ? '✓ Completado' : bloqueado ? '🔒 Bloqueado' : '📖 Disponible'}
         </div>
@@ -663,10 +744,22 @@ function estasBloqueado(ramo) {
 
 // Toggle completitud de ramo
 function toggleRamo(ramoId) {
-    ramoCompletado[ramoId] = !ramoCompletado[ramoId];
-    guardarDatos();
-    renderizarMalla();
-    actualizarContadores();
+    if (!ramoCompletado[ramoId]) {
+        // Al marcar como completado, abrir modal de promedio
+        ramoCompletado[ramoId] = true;
+        guardarDatos();
+        renderizarMalla();
+        actualizarContadores();
+        abrirPromedioModal(ramoId);
+    } else {
+        // Al desmarcar, solo desmarcar sin pedir promedio
+        ramoCompletado[ramoId] = false;
+        delete ramoPromedios[ramoId];
+        guardarDatos();
+        renderizarMalla();
+        actualizarContadores();
+        actualizarGraficoCreditos();
+    }
 }
 
 // Actualizar contadores
@@ -905,13 +998,83 @@ function importarMalla(event) {
 
 // ===== PERSISTENCIA =====
 
+// Actualizar gráfico de créditos
+function actualizarGraficoCreditos() {
+    const totalCreditos = ramosDatos.reduce((sum, ramo) => sum + ramo.creditos, 0);
+    const creditosCompletados = ramosDatos
+        .filter(ramo => ramoCompletado[ramo.id])
+        .reduce((sum, ramo) => sum + ramo.creditos, 0);
+    
+    const creditosPendientes = totalCreditos - creditosCompletados;
+    const porcentaje = totalCreditos > 0 ? Math.round((creditosCompletados / totalCreditos) * 100) : 0;
+    
+    // Calcular promedio general
+    const ramoCompletados = ramosDatos.filter(ramo => ramoCompletado[ramo.id]);
+    let promedioGeneral = '-';
+    if (ramoCompletados.length > 0) {
+        const sumaPromedios = ramoCompletados.reduce((sum, ramo) => {
+            return sum + (ramoPromedios[ramo.id] || 0);
+        }, 0);
+        promedioGeneral = (sumaPromedios / ramoCompletados.length).toFixed(1);
+    }
+    
+    // Actualizar elementos de información
+    document.getElementById('totalCreditos').textContent = totalCreditos;
+    document.getElementById('creditosCompletados').textContent = creditosCompletados;
+    document.getElementById('porcentajeCompletado').textContent = porcentaje + '%';
+    document.getElementById('promedioGeneral').textContent = promedioGeneral;
+    
+    // Crear gráfico con Chart.js
+    const ctx = document.getElementById('creditosChart');
+    if (ctx) {
+        // Destruir gráfico anterior si existe
+        if (window.creditosChartInstance) {
+            window.creditosChartInstance.destroy();
+        }
+        
+        window.creditosChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completados', 'Pendientes'],
+                datasets: [{
+                    data: [creditosCompletados, creditosPendientes],
+                    backgroundColor: [
+                        'rgba(52, 211, 153, 0.8)',
+                        'rgba(209, 213, 219, 0.5)'
+                    ],
+                    borderColor: [
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(156, 163, 175, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: { size: 14 },
+                            padding: 15
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
 // Guardar todos los datos
 function guardarDatos() {
     const datos = {
         info: mallaInfo,
         ramos: ramosDatos,
         tema: temaActual,
-        completados: ramoCompletado
+        completados: ramoCompletado,
+        promedios: ramoPromedios,
+        primeraVez: primeraVez
     };
     localStorage.setItem('mallaCompleta', JSON.stringify(datos));
 }
@@ -923,9 +1086,11 @@ function cargarDatos() {
         try {
             const datos = JSON.parse(guardado);
             mallaInfo = datos.info || mallaInfo;
-            ramosDatos = datos.ramos || ramosDatos;
-            temaActual = datos.tema || 'default';
+            ramosDatos = datos.ramos || [];
+            temaActual = datos.tema || 'blue';
             ramoCompletado = datos.completados || {};
+            ramoPromedios = datos.promedios || {};
+            primeraVez = datos.primeraVez !== false;
             
             document.getElementById('mallaTitle').textContent = mallaInfo.titulo;
             document.getElementById('mallaSubtitle').textContent = mallaInfo.subtitulo;
@@ -933,6 +1098,11 @@ function cargarDatos() {
         } catch (error) {
             console.error('Error al cargar datos:', error);
         }
+    } else {
+        // Primera vez: inicializar con array vacío
+        ramosDatos = [];
+        temaActual = 'blue';
+        primeraVez = true;
     }
 }
 
