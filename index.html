@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Malla Didáctica</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div class="header-title">
+                    <h1 id="mallaTitle">🎓 Pedagogía en Matemática</h1>
+                    <p class="subtitle" id="mallaSubtitle">Malla Didáctica - Plan 2026</p>
+                </div>
+                <div class="header-controls">
+                    <select id="themeSelector" class="theme-selector">
+                        <option value="default">🌸 Rosa Palo</option>
+                        <option value="blue">🔵 Azul</option>
+                        <option value="green">🟢 Verde</option>
+                        <option value="purple">🟣 Púrpura</option>
+                        <option value="orange">🟠 Naranja</option>
+                        <option value="teal">🌊 Turquesa</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <div class="controls">
+            <div class="controls-left">
+                <button id="editBtn" class="control-btn edit-btn">✏️ Editar Malla</button>
+                <button id="resetBtn" class="control-btn reset-btn">↻ Reiniciar Progreso</button>
+            </div>
+            <div class="progress-info">
+                <span id="completedCount">0</span> / <span id="totalCount">0</span> ramos completados
+            </div>
+            <div class="controls-right">
+                <button id="exportBtn" class="control-btn export-btn">📥 Exportar</button>
+                <button id="importBtn" class="control-btn import-btn">📤 Importar</button>
+            </div>
+        </div>
+
+        <div class="malla-container">
+            <div id="mallaGrid" class="malla-grid">
+                <!-- Los ramos se cargarán aquí con JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edición -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Malla Didáctica</h2>
+                <button class="close-btn" id="closeEditModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="edit-section">
+                    <h3>Información de la Malla</h3>
+                    <div class="form-group">
+                        <label>Emoji de la Carrera (opcional):</label>
+                        <div class="emoji-selector">
+                            <button type="button" class="emoji-btn" data-emoji="🎓">🎓</button>
+                            <button type="button" class="emoji-btn" data-emoji="💻">💻</button>
+                            <button type="button" class="emoji-btn" data-emoji="🔬">🔬</button>
+                            <button type="button" class="emoji-btn" data-emoji="📚">📚</button>
+                            <button type="button" class="emoji-btn" data-emoji="🎨">🎨</button>
+                            <button type="button" class="emoji-btn" data-emoji="⚙️">⚙️</button>
+                            <button type="button" class="emoji-btn" data-emoji="💡">💡</button>
+                            <button type="button" class="emoji-btn" data-emoji="🏥">🏥</button>
+                            <button type="button" class="emoji-btn" data-emoji="📖">📖</button>
+                            <button type="button" class="emoji-btn" data-emoji="🎭">🎭</button>
+                        </div>
+                        <input type="text" id="emojiInput" class="form-input" maxlength="2" placeholder="O escribe un emoji" style="text-align: center; font-size: 1.5em;">
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre de la Carrera:</label>
+                        <input type="text" id="titleInput" class="form-input" placeholder="Ej: Pedagogía en Matemática">
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción:</label>
+                        <input type="text" id="subtitleInput" class="form-input" placeholder="Ej: Malla Didáctica - Plan 2026">
+                    </div>
+                </div>
+
+                <div class="edit-section">
+                    <h3>Materias</h3>
+                    <button id="addRamoBtn" class="add-ramo-btn">+ Agregar Materia</button>
+                    <div id="ramosList" class="ramos-list">
+                        <!-- Los ramos se cargarán aquí -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="saveEditBtn" class="btn btn-primary">Guardar Cambios</button>
+                <button id="cancelEditBtn" class="btn btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edición de Ramo -->
+    <div id="ramoModal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2 id="ramoModalTitle">Editar Materia</h2>
+                <button class="close-btn" id="closeRamoModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Código:</label>
+                    <input type="text" id="ramoCode" class="form-input" placeholder="Ej: MAT101">
+                </div>
+                <div class="form-group">
+                    <label>Nombre:</label>
+                    <input type="text" id="ramoName" class="form-input" placeholder="Ej: Cálculo I">
+                </div>
+                <div class="form-group">
+                    <label>Créditos:</label>
+                    <input type="number" id="ramoCreditos" class="form-input" min="1" placeholder="Ej: 5">
+                </div>
+                <div class="form-group">
+                    <label>Semestre:</label>
+                    <input type="number" id="ramoSemestre" class="form-input" min="1" placeholder="Ej: 1">
+                </div>
+                <div class="form-group">
+                    <label>Prerequisitos (IDs separados por comas):</label>
+                    <input type="text" id="ramoPrerequisitos" class="form-input" placeholder="Ej: ramo1, ramo2">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="deleteRamoBtn" class="btn btn-danger">Eliminar</button>
+                <button id="saveRamoBtn" class="btn btn-primary">Guardar</button>
+                <button id="cancelRamoBtn" class="btn btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input hidden para importar -->
+    <input type="file" id="fileInput" accept=".json" style="display: none;">
+
+    <script src="script.js"></script>
+</body>
+</html>
